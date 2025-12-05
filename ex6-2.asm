@@ -1,44 +1,137 @@
+org 100h
+
 jmp start
 
-; print_ax_number: prints AX as decimal
-PROC print_ax_number
+error_msg db "Error: division by zero$"
+
+PROC handle_zero_div
+    pusha
+    mov dx, offset error_msg ; print error message
+    mov ah, 0x9
+    int 21h
+    
+    call print_new_line
+    
+    popa
+    iret
+ENDP handle_zero_div
+
+PROC print_new_line
+    push bp
+    push dx
+    push ax
+    
+    mov dl, 0x0D
+    mov ah, 0x2
+    int 21h
+    
+    mov dl, 0x0A
+    mov ah, 0x2
+    int 21h
+    
+    pop ax
+    pop dx
+    pop bp
+    ret
+ENDP print_new_line
+
+PROC print_num_uns
     push bp
     mov bp, sp
-    push ax
     push bx
     push cx
     push dx
     
-    mov ax, [bp+4] ; grab number to print
-    xor cx, cx            ; digit count = 0
-
-convert_loop:
-    xor dx, dx            ; clear high word for DIV
+    mov ax, [bp+4]
+    
+    cmp ax, 0
+    jne .not_zero
+    mov dl, '0'
+    mov ah, 0x2
+    int 21h
+    jmp .done
+    
+.not_zero:
     mov bx, 10
-    div bx                ; AX / 10 ? AX = quotient, DX = remainder
+    mov cx, 0
 
-    push dx               ; push remainder (digit)
-    inc cx                ; count digits
-    test ax, ax
-    jnz convert_loop      ; keep dividing until AX == 0
-
-print_loop:
-    pop dx                ; get digit
-    add dl, '0'           ; convert to ASCII
-    mov ah, 02h
-    int 21h               ; print char
-    loop print_loop       ; repeat until all digits printed
-
+.extract:
+    xor dx, dx
+    div bx
+    push dx
+    inc cx
+    cmp ax, 0
+    jne .extract
+    
+; Print digits from stack
+.print_loop:
+    pop dx
+    add dl, '0' ; ASCII
+    mov ah, 0x2
+    int 21h
+    loop .print_loop
+    
+.done:
+    call print_new_line
+    
     pop dx
     pop cx
     pop bx
-    pop ax
     pop bp
+    ret 2
+ENDP print_num_uns
+
+PROC print_all_regs
+    push ax
+    call print_num_uns
+    
+    push bx
+    call print_num_uns
+    
+    push cx
+    call print_num_uns
+    
+    push dx
+    call print_num_uns
+    
+    push sp
+    call print_num_uns
+    
+    push bp
+    call print_num_uns
+    
+    push si
+    call print_num_uns
+    
+    push di
+    call print_num_uns
     ret
-ENDP
-
-
+ENDP print_all_regs
 
 start:
-    push 123
-    call print_ax_number
+    cli ; clear ints
+    
+    mov ax, 0x0
+    mov es, ax
+    
+    mov bx, cs
+    mov ax, offset handle_zero_div ; addr of handler
+    
+    ; little endian
+    ; https://he.wikipedia.org/wiki/%D7%A1%D7%93%D7%A8_%D7%91%D7%AA%D7%99%D7%9D               
+    mov word ptr es:[2h], bx ; code segment
+    mov word ptr es:[0h], ax ; offset (handler funcfiton)
+    
+    sti ; enable ints
+    
+    call print_all_regs
+    
+    xor ax, ax
+    div ax ; 0 / 0
+    
+    call print_all_regs
+    
+end:
+    xor ah, ah
+    int 16h
+    ret
