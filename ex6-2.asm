@@ -45,33 +45,33 @@ PROC print_num_uns
     mov ax, [bp+4]
     
     cmp ax, 0
-    jne .not_zero
+    jne not_zero
     mov dl, '0'
     mov ah, 0x2
     int 21h
-    jmp .done
+    jmp print_num_uns_done
     
-.not_zero:
+not_zero:
     mov bx, 10
     mov cx, 0
 
-.extract:
+extract:
     xor dx, dx
     div bx
     push dx
     inc cx
     cmp ax, 0
-    jne .extract
+    jne extract
     
 ; Print digits from stack
-.print_loop:
+print_loop:
     pop dx
     add dl, '0' ; ASCII
     mov ah, 0x2
     int 21h
-    loop .print_loop
+    loop print_loop
     
-.done:
+print_num_uns_done:
     call print_new_line
     
     pop dx
@@ -105,6 +105,7 @@ PROC print_all_regs
     
     push di
     call print_num_uns
+    
     ret
 ENDP print_all_regs
 
