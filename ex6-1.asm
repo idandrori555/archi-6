@@ -29,32 +29,43 @@ check_key_pressed:
     jmp dec_temp
 
 PROC print_new_line
-    push bp
-    push dx
     push ax
+    push dx
     
-    mov dl, 0x0D
     mov ah, 0x2
+    mov dl, 0x0D
     int 21h
     
     mov dl, 0x0A
-    mov ah, 0x2
     int 21h
     
-    pop ax
     pop dx
-    pop bp
+    pop ax
     ret
 ENDP print_new_line
+    
+PROC print_space
+    push ax
+    push dx
+    
+    mov ah, 0x2
+    mov dl, ' '
+    int 21h
+
+    pop dx
+    pop ax
+    ret
+ENDP print_space
 
 PROC print_num_uns
     push bp
     mov bp, sp
+    
+    mov ax, [bp+4]
+    
     push bx
     push cx
     push dx
-    
-    mov ax, [bp+4]
     
     cmp ax, 0
     jne not_zero
@@ -94,15 +105,18 @@ PROC print_all
     mov bp, sp
     
     in ax, DATA_PORT
+    xor ah, ah
     push ax
     call print_num_uns
     
-    call print_new_line
+    call print_space
     
     mov al, [target_temp]
     xor ah, ah
     push ax 
     call print_num_uns
+    
+    call print_new_line
     
     pop bp
     ret
